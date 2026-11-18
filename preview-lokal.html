@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Dimsum Hangat Nusantara | E-Commerce & OMS UMKM Dimsum</title>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            background: '#FCF9F4',
+            foreground: '#251913',
+            terracotta: {
+              50: '#fdf4f1',
+              100: '#fbe6df',
+              200: '#f7d0c4',
+              300: '#f0af9b',
+              400: '#e68264',
+              500: '#dc5d39',
+              600: '#c84622',
+              700: '#a7371b',
+              800: '#8a2f1a',
+              900: '#722b1b',
+              950: '#3e130a',
+            },
+            cream: {
+              50: '#fffdf9',
+              100: '#faf4ec',
+              200: '#f3e6d5',
+            },
+            espresso: {
+              800: '#2b211c',
+              900: '#1e1612',
+              950: '#140e0b',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <!-- React 18, Supabase JS v2 & Babel Standalone -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @media print {
+      @page { size: 58mm auto; margin: 0mm; }
+      body * { visibility: hidden; }
+      #thermal-receipt-print, #thermal-receipt-print * { visibility: visible; }
+      #thermal-receipt-print {
+        position: absolute; left: 0; top: 0; width: 58mm;
+        padding: 3mm 2mm; background: #fff !important; color: #000 !important;
+        font-family: "Courier New", Courier, monospace !important;
+        font-size: 11px !important; line-height: 1.35 !important;
+        border: none !important; box-shadow: none !important;
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-background text-foreground font-sans antialiased selection:bg-terracotta-600 selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // Koneksi Langsung ke Proyek Supabase Anda
+    const SUPABASE_URL = "https://zzlynalvbfxvmwukftdx.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yB2b_B0jpWjikuPRUCd3pw_Du83ULyY";
+    const supabaseClient = window.supabase
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+      : null;
+
+    const CATEGORIES = [
+      "Dimsum Kukus",
+      "Dimsum Goreng",
+      "Dimsum Mentai",
+      "Frozen Pack",
+      "Saus & Minuman"
+    ];
+
+    const DELIVERY_OPTIONS = {
+      pickup: {
+        label: "Ambil Sendiri di Outlet",
+        description: "Bebas ongkir, pesanan disiapkan hangat sesuai jam ambil",
+        fee: 0,
+        eta: "Siap 15-20 menit"
+      },
+      instant_courier: {
+        label: "Kurir Lokal / Instan",
+        description: "Diantar langsung selagi hangat (area radius 10 km)",
+        fee: 10000,
+        eta: "Estimasi 30-45 menit"
+      },
+      frozen_expedition: {
+        label: "Ekspedisi Frozen (Luar Kota)",
+        description: "Kemasan vakum + ice gel tahan hingga 3x24 jam perjalanan",
+        fee: 20000,
+        eta: "Estimasi 1-2 hari kerja"
+      }
+    };
+
+    const INITIAL_PRODUCTS = [
+      {
+        id: "11111111-1111-4111-8111-111111111101",
+        name: "Siomay Ayam Udang Spesial",
+        slug: "siomay-ayam-udang-spesial",
+        description: "Dimsum klasik favorit dengan daging paha ayam segar pilihan dan potongan udang utuh yang juicy, disajikan hangat dengan taburan tobiko dan chili oil khas.",
+        category: "Dimsum Kukus",
+        base_price: 16000,
+        image_url: "https://images.unsplash.com/photo-1496116218417-1a781b1c416c?auto=format&fit=crop&w=800&q=80",
+        is_available: true,
+        stock_qty: 45,
+        product_variants: [
+          { id: "v-101", variant_name: "Isi 4 Pcs (Reguler)", additional_price: 0 },
+          { id: "v-102", variant_name: "Isi 8 Pcs (Double)", additional_price: 14000 },
+          { id: "v-103", variant_name: "Party Box 16 Pcs", additional_price: 42000 }
+        ]
+      },
+      {
+        id: "11111111-1111-4111-8111-111111111102",
+        name: "Hakau Udang Kristal",
+        slug: "hakau-udang-kristal",
+        description: "Kulit hakau tipis transparan yang lembut membungkus udang vaname segar utuh dengan sedikit minyak wijen harum.",
+        category: "Dimsum Kukus",
+        base_price: 18000,
+        image_url: "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80",
+        is_available: true,
+        stock_qty: 30,
+        product_variants: [
+          { id: "v-201", variant_name: "Isi 4 Pcs (Reguler)", additional_price: 0 },
+          { id: "v-202", variant_name: "Isi 8 Pcs (Double)", additional_price: 16000 },
+          { id: "v-203", variant_name: "Party Box 16 Pcs", additional_price: 48000 }
+        ]
+      },
+      {
+        id: "11111111-1111-4111-8111-111111111103",
+        name: "Angsio Ceker Empuk Bumbu Tausi",
+        slug: "angsio-ceker-empuk-bumbu-tausi",
+        description: "Ceker ayam presto super lembut yang dimasak perlahan selama 4 jam dalam saus angsio kedelai hitam manis gurih hingga meresap ke tulang.",
+        category: "Dimsum Kukus",
+        base_price: 15000,
+        image_url: "https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?auto=format&fit=crop&w=800&q=80",
+        is_available: true,
+        stock_qty: 25,
+        product_variants: [
+          { id: "v-301", variant_name: "Porsi Reguler (4 Potong)", additional_price: 0 },
+          { id: "v-302", variant_name: "Porsi Jumbo (8 Potong)", additional_price: 13000 }
+        ]
+      },
+      {
+        id: "11111111-1111-4111-8111-111111111104",
+        name: "Lumpia Kulit Tahu Udang Crispy",
+        slug: "lumpia-kulit-tahu-udang-crispy",
+        description: "Gulungan kulit tahu renyah keemasan berisi adonan udang dan ayam cincang dengan daun ketumbar dan saus tiram.",
+        category: "Dimsum Goreng",
+        base_price: 17000,
+        image_url: "https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?auto=format&fit=crop&w=800&q=80",
+        is_available: true,
+        stock_qty: 35,
+        product_variants: [
+          { id: "v-401", variant_name: "Isi 4 Pcs", additional_price: 0 },
+          { id: "v-402", variant_name: "Isi 8 Pcs", additional_price: 15000 },
+          { id: "v-403", variant_name: "Party Box 16 Pcs", additional_price: 45000 }
+        ]
+      },
+      {
+        id: "11111111-1111-4111-8111-111111111105",
+        name: "Ekado Telur Puyuh Kantong Emas",
+        slug: "ekado-telur-puyuh-kantong-emas",
+        description: "Kantong kembang tahu renyah diikat kucai segar dengan isian telur puyuh utuh yang dibalut olahan daging ayam udang gurih.",
+        category: "Dimsum Goreng",
+        base_price: 17000,
+        image_url: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80",
+        is_available: true,
+        stock_qty: 20,
+        product_variants: [
+          { id: "v-501", variant_name: "Isi 4 Pcs", additional_price: 0 },
+          { id: "v-502", variant_name: "Isi 8 Pcs", additional_price: 15000 }
+        ]
+      },
+      {
+        id: "11111111-1111-4111-8111-111111111106",
+        name: "Siomay Mentai Torch Melted",
+        slug: "siomay-mentai-torch-melted",
+        description: "Siomay ayam udang dengan siraman saus mentaiko creamy melimpah yang di-torch hingga mengeluarkan aroma smoky, ditaburi rumput laut nori & tobiko.",
+        category: "Dimsum Mentai",
+        base_price: 24000,
+        image_url: "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=800&q=80",
+        is_available: true,
+        stock_qty: 40,
+        product_variants: [
+          { id: "v-601", variant_name: "Isi 6 Pcs (Personal Box)", additional_price: 0 },
+          { id: "v-602", variant_name: "Isi 12 Pcs (Sharing Tray)", additional_price: 21000 },
+          { id: "v-603", variant_name: "Party Platter 20 Pcs + Extra Keju", additional_price: 48000 }
+        ]
+      },
+      {
+        id: "11111111-1111-4111-8111-111111111107",
+        name: "Gyoza Panggang Mentai Mozzarella",
+        slug: "gyoza-panggang-mentai-mozzarella",
+        description: "Gyoza ayam sayuran yang dipanggang renyah di bagian bawah, disiram saus mentai pedas gurih dan lelehan keju mozzarella.",
+        category: "Dimsum Mentai",
+        base_price: 25000,
+        image_url: "https://images.unsplash.com/photo-1607330289024-1535c6b4e1c1?auto=format&fit=crop&w=800&q=80",
+        is_available: false,
+        stock_qty: 0,
+        product_variants: [
+          { id: "v-701", variant_name: "Isi 6 Pcs", additional_price: 0 },
+          { id: "v-702", variant_name: "Isi 12 Pcs", additional_price: 22000 }
+        ]
+      },
+      {
+        id: "11111111-1111-4111-8111-111111111108",
+        name: "Frozen Pack Mix Dimsum Spesial (Vacuum)",
+        slug: "frozen-pack-mix-dimsum-spesial",
+        description: "Paket dimsum beku kemasan vakum higienis siap kukus di rumah! Terdiri dari Siomay Udang, Ayam Jamur, Nori, Kepiting, dan Wortel lengkap dengan saus sambal & chili oil.",
+        category: "Frozen Pack",
+        base_price: 55000,
+        image_url: "https://images.unsplash.com/photo-1555126634-323283e090fa?auto=format&fit=crop&w=800&q=80",
+        is_available: true,
+        stock_qty: 50,
+        product_variants: [
+          { id: "v-801", variant_name: "Pack Isi 20 Pcs", additional_price: 0 },
+          { id: "v-802", variant_name: "Pack Isi 40 Pcs (Hemat)", additional_price: 48000 },
+          { id: "v-803", variant_name: "Reseller Box 100 Pcs", additional_price: 175000 }
+        ]
+      },
+      {
+        id: "11111111-1111-4111-8111-111111111109",
+        name: "Chili Oil Rebon Wangi Spesial",
+        slug: "chili-oil-rebon-wangi-spesial",
+        description: "Minyak cabai racikan rahasia dengan ebi/rebon pilihan, bawang putih crispy, dan rempah Sichuan yang gurih pedas menggugah selera.",
+        category: "Saus & Minuman",
+        base_price: 12000,
+        image_url: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?auto=format&fit=crop&w=800&q=80",
+        is_available: true,
+        stock_qty: 60,
+        product_variants: [
+          { id: "v-901", variant_name: "Cup Ekstra 50ml", additional_price: 0 },
+          { id: "v-902", variant_name: "Botol Jar Kaca 150ml", additional_price: 18000 }
+        ]
+      },
+      {
+        id: "11111111-1111-4111-8111-111111111110",
+        name: "Es Liang Teh & Bunga Krisan Asli",
+        slug: "es-liang-teh-bunga-krisan",
+        description: "Minuman herbal segar seduhan bunga krisan, kundur, dan gula batu asli untuk menemani santapan dimsum hangat Anda.",
+        category: "Saus & Minuman",
+        base_price: 10000,
+        image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=800&q=80",
+        is_available: true,
+        stock_qty: 40,
+        product_variants: [
+          { id: "v-1001", variant_name: "Cup 350ml (Less Sugar)", additional_price: 0 },
+          { id: "v-1002", variant_name: "Cup 350ml (Normal Sugar)", additional_price: 0 },
+          { id: "v-1003", variant_name: "Botol 1 Liter (Keluarga)", additional_price: 18000 }
+        ]
+      }
+    ];
+
+    const VOUCHERS = [
+      { code: "DIMSUMHEMAT", discount_type: "fixed", discount_value: 10000, min_order: 50000, quota: 100, is_active: true },
+      { code: "MENTAILOVER", discount_type: "percentage", discount_value: 15, min_order: 75000, quota: 50, is_active: true },
+      { code: "UMKMBANGKIT", discount_type: "fixed", discount_value: 20000, min_order: 120000, quota: 25, is_active: true }
+    ];
+
+    const INITIAL_ORDERS = [
+      {
+        id: "ord-1",
+        order_number: "DMS-20261118-8821",
+        customer_name: "Budi Santoso",
+        customer_phone: "081298765432",
+        delivery_type: "instant_courier",
+        delivery_address: "Jl. Melawai Raya No. 45, Kebayoran Baru, Jakarta Selatan",
+        subtotal: 75000,
+        delivery_fee: 10000,
+        discount_amount: 10000,
+        total_amount: 75000,
+        payment_status: "paid",
+        order_status: "preparing",
+        notes: "Tolong saus mentai dan chili oil dipisah ya kak",
+        created_at: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+        order_items: [
+          {
+            id: "oi-1",
+            product_name: "Siomay Ayam Udang Spesial",
+            variant_name: "Isi 8 Pcs (Double)",
+            quantity: 1,
+            unit_price: 30000,
+            item_notes: "Chili oil ekstra pedas"
+          },
+          {
+            id: "oi-2",
+            product_name: "Siomay Mentai Torch Melted",
+            variant_name: "Isi 12 Pcs (Sharing Tray)",
+            quantity: 1,
+            unit_price: 45000,
+            item_notes: "Torch agak kering"
+          }
+        ]
+      },
+      {
+        id: "ord-2",
+        order_number: "DMS-20261118-4109",
+        customer_name: "Siti Rahmawati",
+        customer_phone: "085711223344",
+        delivery_type: "pickup",
+        delivery_address: null,
+        subtotal: 92000,
+        delivery_fee: 0,
+        discount_amount: 0,
+        total_amount: 92000,
+        payment_status: "paid",
+        order_status: "completed",
+        notes: "Diambil jam 12 siang",
+        created_at: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
+        order_items: [
+          {
+            id: "oi-3",
+            product_name: "Hakau Udang Kristal",
+            variant_name: "Party Box 16 Pcs",
+            quantity: 1,
+            unit_price: 66000,
+            item_notes: ""
+          },
+          {
+            id: "oi-4",
+            product_name: "Es Liang Teh & Bunga Krisan Asli",
+            variant_name: "Cup 350ml (Less Sugar)",
+            quantity: 2,
+            unit_price: 13000,
+            item_notes: "Es batu pisah"
+          }
+        ]
+      }
+    ];
+
+    function formatRupiah(amount) {
+      return "Rp " + new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(Math.max(0, Math.round(amount)));
+    }
+
+    function generateOrderNumber() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const rnd = Math.floor(1000 + Math.random() * 9000);
+      return `DMS-${y}${m}${day}-${rnd}`;
+    }
+
+    function App() {
+      // Routing: "storefront" | "checkout" | "order" | "admin-login" | "admin"
+      const [route, setRoute] = useState("storefront");
+      const [activeOrderNo, setActiveOrderNo] = useState("DMS-20261118-8821");
+
+      // Persistent State
+      const [products, setProducts] = useState(() => {
+        try {
+          const saved = localStorage.getItem("dimsum_products_db_v1");
+          return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+        } catch { return INITIAL_PRODUCTS; }
+      });
+
+      const [orders, setOrders] = useState(() => {
+        try {
+          const saved = localStorage.getItem("dimsum_orders_db_v1");
+          return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+        } catch { return INITIAL_ORDERS; }
+      });
+
+      const [cart, setCart] = useState(() => {
+        try {
+          const saved = localStorage.getItem("dimsum_cart_v1");
+          return saved ? JSON.parse(saved) : [];
+        } catch { return []; }
+      });
+
+      const [deliveryType, setDeliveryType] = useState("instant_courier");
+      const [appliedVoucher, setAppliedVoucher] = useState(null);
+      const [adminLoggedIn, setAdminLoggedIn] = useState(false);
+      const [supabaseConnected, setSupabaseConnected] = useState(false);
+
+      // Sinkronisasi awal & Realtime dengan Supabase (https://zzlynalvbfxvmwukftdx.supabase.co)
+      useEffect(() => {
+        if (!supabaseClient) return;
+        let isMounted = true;
+
+        async function syncWithSupabase() {
+          try {
+            const { data: prodData, error: prodErr } = await supabaseClient
+              .from("products")
+              .select("*, product_variants(*)")
+              .order("created_at", { ascending: true });
+
+            if (!prodErr && prodData && prodData.length > 0 && isMounted) {
+              setProducts(prodData);
+              setSupabaseConnected(true);
+            } else if (!prodErr && isMounted) {
+              setSupabaseConnected(true);
+            }
+
+            const { data: ordData, error: ordErr } = await supabaseClient
+              .from("orders")
+              .select("*, order_items(*, products(name), product_variants(variant_name))")
+              .order("created_at", { ascending: false });
+
+            if (!ordErr && ordData && ordData.length > 0 && isMounted) {
+              const mappedOrders = ordData.map((o) => ({
+                ...o,
+                order_items: (o.order_items || []).map((it) => ({
+                  id: it.id,
+                  product_name: it.products?.name || it.product_name || "Menu Dimsum",
+                  variant_name: it.product_variants?.variant_name || it.variant_name || "Reguler",
+                  quantity: it.quantity,
+                  unit_price: it.unit_price,
+                  item_notes: it.item_notes
+                }))
+              }));
+              setOrders(mappedOrders);
+            }
+          } catch {}
+        }
+
+        syncWithSupabase();
+
+        const channel = supabaseClient
+          .channel("realtime-dimsum-live")
+          .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+            syncWithSupabase();
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => {
+            syncWithSupabase();
+          })
+          .subscribe();
+
+        return () => {
+          isMounted = false;
+          supabaseClient.removeChannel(channel);
+        };
+      }, []);
+
+      // Sync to localStorage
+      useEffect(() => {
+        try { localStorage.setItem("dimsum_products_db_v1", JSON.stringify(products)); } catch {}
+      }, [products]);
+
+      useEffect(() => {
+        try { localStorage.setItem("dimsum_orders_db_v1", JSON.stringify(orders)); } catch {}
+      }, [orders]);
+
+      useEffect(() => {
+        try { localStorage.setItem("dimsum_cart_v1", JSON.stringify(cart)); } catch {}
+      }, [cart]);
+
+      // Storefront Filter & Modal State
+      const [selectedCat, setSelectedCat] = useState("Semua");
+      const [searchQuery, setSearchQuery] = useState("");
+      const [modalProduct, setModalProduct] = useState(null);
+      const [selectedVariant, setSelectedVariant] = useState(null);
+      const [modalQty, setModalQty] = useState(1);
+      const [modalNotes, setModalNotes] = useState("");
+      const [trackModalOpen, setTrackModalOpen] = useState(false);
+      const [trackInput, setTrackInput] = useState("DMS-20261118-8821");
+
+      // Checkout Form State
+      const [customerName, setCustomerName] = useState("");
+      const [customerPhone, setCustomerPhone] = useState("");
+      const [deliveryAddress, setDeliveryAddress] = useState("");
+      const [orderNotes, setOrderNotes] = useState("");
+      const [voucherInput, setVoucherInput] = useState("");
+      const [voucherAlert, setVoucherAlert] = useState(null);
+
+      // Admin State
+      const [adminTab, setAdminTab] = useState("orders");
+      const [adminStatusFilter, setAdminStatusFilter] = useState("ALL");
+      const [receiptOrder, setReceiptOrder] = useState(null);
+      const [loginEmail, setLoginEmail] = useState("admin@dimsum.id");
+      const [loginPass, setLoginPass] = useState("dimsum123");
+      const [editProductModal, setEditProductModal] = useState(null);
+
+      // Cart Helpers
+      const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+      const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+      const deliveryFee = cart.length > 0 ? (DELIVERY_OPTIONS[deliveryType]?.fee ?? 0) : 0;
+      const discountAmount = useMemo(() => {
+        if (!appliedVoucher || subtotal < appliedVoucher.min_order) return 0;
+        if (appliedVoucher.discount_type === "fixed") return Math.min(appliedVoucher.discount_value, subtotal);
+        return Math.round((subtotal * appliedVoucher.discount_value) / 100);
+      }, [appliedVoucher, subtotal]);
+      const totalAmount = Math.max(0, subtotal - discountAmount + deliveryFee);
+
+      const openCustomizeModal = (prod) => {
+        setModalProduct(prod);
+        setSelectedVariant(prod.product_variants?.[0] || null);
+        setModalQty(1);
+        setModalNotes("");
+      };
+
+      const handleAddToCart = () => {
+        if (!modalProduct) return;
+        const unitPrice = modalProduct.base_price + (selectedVariant ? selectedVariant.additional_price : 0);
+        const variantName = selectedVariant ? selectedVariant.variant_name : "Reguler";
+        const key = `${modalProduct.id}__${variantName}__${modalNotes.trim().toLowerCase()}`;
+
+        setCart((prev) => {
+          const idx = prev.findIndex((i) => i.key === key);
+          if (idx > -1) {
+            const copy = [...prev];
+            copy[idx] = { ...copy[idx], quantity: copy[idx].quantity + modalQty };
+            return copy;
+          }
+          return [
+            ...prev,
+            {
+              key,
+              productId: modalProduct.id,
+              productName: modalProduct.name,
+              productImage: modalProduct.image_url,
+              variantName,
+              unitPrice,
+              quantity: modalQty,
+              itemNotes: modalNotes.trim()
+            }
+          ];
+        });
+        setModalProduct(null);
+      };
+
+      const updateCartQty = (key, newQty) => {
+        if (newQty <= 0) {
+          setCart((prev) => prev.filter((i) => i.key !== key));
+        } else {
+          setCart((prev) => prev.map((i) => (i.key === key ? { ...i, quantity: newQty } : i)));
+        }
+      };
+
+      const handleValidateVoucher = (codeOverride) => {
+        const code = (codeOverride ?? voucherInput).trim().toUpperCase();
+        const found = VOUCHERS.find((v) => v.code === code);
+        if (!found) {
+          setAppliedVoucher(null);
+          setVoucherAlert({ type: "error", text: `Kode voucher "${code}" tidak ditemukan.` });
+          return;
+        }
+        if (subtotal < found.min_order) {
+          setAppliedVoucher(null);
+          setVoucherAlert({ type: "error", text: `Minimal belanja voucher ${code} adalah ${formatRupiah(found.min_order)}.` });
+          return;
+        }
+        setVoucherInput(code);
+        setAppliedVoucher(found);
+        setVoucherAlert({ type: "success", text: `Voucher ${code} berhasil diterapkan!` });
+      };
+
+      const handleCreateOrder = (e) => {
+        e.preventDefault();
+        if (!customerName.trim() || !customerPhone.trim()) return;
+        if (deliveryType !== "pickup" && !deliveryAddress.trim()) return;
+
+        const newOrderNo = generateOrderNumber();
+        const newOrder = {
+          id: "ord-" + Date.now(),
+          order_number: newOrderNo,
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          delivery_type: deliveryType,
+          delivery_address: deliveryType === "pickup" ? null : deliveryAddress.trim(),
+          subtotal,
+          delivery_fee: deliveryFee,
+          discount_amount: discountAmount,
+          total_amount: totalAmount,
+          payment_status: "pending",
+          order_status: "awaiting_payment",
+          notes: orderNotes.trim() || null,
+          created_at: new Date().toISOString(),
+          order_items: cart.map((item, idx) => ({
+            id: "oi-" + Date.now() + "-" + idx,
+            product_name: item.productName,
+            variant_name: item.variantName,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            item_notes: item.itemNotes
+          }))
+        };
+
+        setOrders((prev) => [newOrder, ...prev]);
+        setCart([]);
+        setAppliedVoucher(null);
+        setActiveOrderNo(newOrderNo);
+        setRoute("order");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+
+        // Simpan juga ke tabel orders & order_items di Supabase
+        if (supabaseClient) {
+          supabaseClient
+            .from("orders")
+            .insert({
+              order_number: newOrder.order_number,
+              customer_name: newOrder.customer_name,
+              customer_phone: newOrder.customer_phone,
+              delivery_type: newOrder.delivery_type,
+              delivery_address: newOrder.delivery_address,
+              subtotal: newOrder.subtotal,
+              delivery_fee: newOrder.delivery_fee,
+              discount_amount: newOrder.discount_amount,
+              total_amount: newOrder.total_amount,
+              payment_status: "pending",
+              order_status: "awaiting_payment",
+              notes: newOrder.notes
+            })
+            .select("*")
+            .single()
+            .then(({ data: inserted }) => {
+              if (inserted) {
+                const itemsPayload = cart.map((item) => ({
+                  order_id: inserted.id,
+                  product_id: item.productId,
+                  quantity: item.quantity,
+                  unit_price: item.unitPrice,
+                  item_notes: item.itemNotes || null
+                }));
+                supabaseClient.from("order_items").insert(itemsPayload);
+              }
+            });
+        }
+      };
+
+      const updateOrderStatus = (orderNumber, nextStatus, markPaid = false) => {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.order_number === orderNumber
+              ? {
+                  ...o,
+                  order_status: nextStatus,
+                  payment_status: markPaid ? "paid" : o.payment_status
+                }
+              : o
+          )
+        );
+        if (supabaseClient) {
+          const patch = { order_status: nextStatus };
+          if (markPaid) patch.payment_status = "paid";
+          supabaseClient.from("orders").update(patch).eq("order_number", orderNumber).then(() => {});
+        }
+      };
+
+      const toggleProductStock = (prodId) => {
+        setProducts((prev) =>
+          prev.map((p) => {
+            if (p.id !== prodId) return p;
+            const nextAvail = !p.is_available;
+            const nextStock = nextAvail && p.stock_qty === 0 ? 25 : p.stock_qty;
+            if (supabaseClient) {
+              supabaseClient
+                .from("products")
+                .update({ is_available: nextAvail, stock_qty: nextStock })
+                .eq("id", prodId)
+                .then(() => {});
+            }
+            return {
+              ...p,
+              is_available: nextAvail,
+              stock_qty: nextStock
+            };
+          })
+        );
+      };
+
+      const filteredProducts = products.filter((p) => {
+        const matchCat = selectedCat === "Semua" || p.category === selectedCat;
+        const q = searchQuery.trim().toLowerCase();
+        const matchQ = !q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+        return matchCat && matchQ;
+      });
+
+      const currentOrder = orders.find((o) => o.order_number.toUpperCase() === activeOrderNo.toUpperCase());
+
+      return (
+        <div className="min-h-screen flex flex-col pb-24">
+          {/* Top Promo & Route Switcher Bar */}
+          <div className="no-print bg-espresso-950 text-cream-100 text-xs py-2 px-4 border-b border-white/10">
+            <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>
+                  Promo Hari Ini: Pakai kode <strong className="text-amber-300">DIMSUMHEMAT</strong> (Diskon Rp 10.000) atau <strong className="text-amber-300">MENTAILOVER</strong> (Diskon 15%)
+                </span>
+              </div>
+              <div className="flex items-center gap-3 font-semibold">
+                <button onClick={() => setRoute("storefront")} className={`hover:text-amber-300 ${route === "storefront" ? "text-amber-300 underline" : ""}`}>
+                  Storefront (/)
+                </button>
+                <span>•</span>
+                <button onClick={() => setRoute("checkout")} className={`hover:text-amber-300 ${route === "checkout" ? "text-amber-300 underline" : ""}`}>
+                  Checkout (/checkout)
+                </button>
+                <span>•</span>
+                <button onClick={() => setRoute("order")} className={`hover:text-amber-300 ${route === "order" ? "text-amber-300 underline" : ""}`}>
+                  Lacak Order (/order)
+                </button>
+                <span>•</span>
+                <button
+                  onClick={() => setRoute(adminLoggedIn ? "admin" : "admin-login")}
+                  className={`hover:text-amber-300 ${route.startsWith("admin") ? "text-amber-300 underline" : ""}`}
+                >
+                  Portal Admin (/admin)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Sticky Navbar */}
+          <header className="no-print sticky top-0 z-40 border-b border-stone-200/80 bg-[#FCF9F4]/95 backdrop-blur-md">
+            <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+              <button onClick={() => setRoute("storefront")} className="flex items-center gap-2.5 text-left">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-terracotta-600 to-amber-600 text-white shadow-sm font-extrabold text-lg">
+                  🥟
+                </div>
+                <div>
+                  <span className="block text-base font-extrabold tracking-tight text-espresso-900 leading-none">
+                    Dimsum Hangat Nusantara
+                  </span>
+                  <span className="block text-[11px] font-semibold text-terracotta-700 mt-0.5">
+                    Artisan Steamed & Mentai Bar
+                  </span>
+                </div>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setTrackModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-bold text-espresso-900 hover:bg-stone-100"
+                >
+                  <span>🔍 Lacak Pesanan</span>
+                </button>
+
+                <button
+                  onClick={() => setRoute("checkout")}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-terracotta-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-terracotta-700"
+                >
+                  <span>🛒 Keranjang</span>
+                  {totalItems > 0 && (
+                    <span className="ml-0.5 rounded-full bg-amber-300 px-1.5 py-0.2 text-[11px] font-extrabold text-espresso-950">
+                      {totalItems}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* ============================================================== */}
+          {/* VIEW 1: STOREFRONT PELANGGAN (/)                               */}
+          {/* ============================================================== */}
+          {route === "storefront" && (
+            <>
+              {/* Hero Section */}
+              <section className="relative overflow-hidden bg-gradient-to-br from-espresso-950 via-espresso-900 to-terracotta-900 text-cream-50">
+                <div className="max-w-6xl mx-auto px-4 py-10 md:py-14 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                  <div className="lg:col-span-7 space-y-4">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-3.5 py-1 text-xs font-semibold text-amber-300">
+                      ✨ 100% Daging Ayam & Udang Segar • Tanpa Pengawet
+                    </span>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
+                      Dimsum Kukus Hangat & <span className="text-amber-300">Mentai Torch</span> Langsung dari Klakat!
+                    </h1>
+                    <p className="text-sm sm:text-base text-stone-300 max-w-xl leading-relaxed">
+                      Dibuat segar setiap pagi dengan resep otentik UMKM kebanggaan keluarga. Lengkap dengan siraman <strong className="text-amber-200">Chili Oil Rebon Wangi</strong> yang menggugah selera.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 pt-2">
+                      <a
+                        href="#katalog-menu"
+                        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-terracotta-600 to-amber-600 px-6 py-3 text-sm font-extrabold text-white shadow-lg hover:from-terracotta-700 hover:to-amber-700"
+                      >
+                        <span>Pesan Sekarang ↓</span>
+                      </a>
+                      <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-stone-200">
+                        <strong className="block text-white">Buka Setiap Hari</strong>
+                        <span>09:00 – 21:30 WIB</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="lg:col-span-5">
+                    <div className="rounded-3xl border border-white/15 bg-white/5 p-3 backdrop-blur-sm shadow-2xl">
+                      <div className="relative h-56 sm:h-64 w-full overflow-hidden rounded-2xl">
+                        <img
+                          src="https://images.unsplash.com/photo-1496116218417-1a781b1c416c?auto=format&fit=crop&w=900&q=80"
+                          alt="Dimsum Hangat"
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-espresso-950/90 via-transparent to-transparent" />
+                        <span className="absolute top-3 left-3 rounded-full bg-terracotta-600 px-3 py-1 text-xs font-bold text-white">
+                          🔥 Terlaris Minggu Ini
+                        </span>
+                        <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between text-white">
+                          <div>
+                            <p className="text-xs text-amber-300 font-semibold">Paket Favorit Keluarga</p>
+                            <h2 className="text-lg font-extrabold">Siomay Ayam Udang & Mentai</h2>
+                          </div>
+                          <div className="text-right">
+                            <span className="block text-[10px] text-stone-300">Mulai dari</span>
+                            <span className="text-lg font-extrabold text-amber-300">Rp 16.000</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Catalog Section */}
+              <main id="katalog-menu" className="max-w-6xl mx-auto w-full px-4 pt-8 flex-1">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-5">
+                  <div>
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-terracotta-600">Katalog Menu Kami</span>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-espresso-900">Pilih Dimsum Favoritmu</h2>
+                  </div>
+                  <div className="w-full md:w-80">
+                    <input
+                      type="text"
+                      placeholder="🔍 Cari siomay, hakau, mentai, frozen..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-stone-300 bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-600"
+                    />
+                  </div>
+                </div>
+
+                {/* Horizontal Category Tabs */}
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3 mb-6 border-b border-stone-200">
+                  {["Semua", ...CATEGORIES].map((cat) => {
+                    const active = selectedCat === cat;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCat(cat)}
+                        className={`whitespace-nowrap rounded-full px-4 py-2 text-xs sm:text-sm font-bold transition-all shrink-0 ${
+                          active
+                            ? "bg-terracotta-600 text-white shadow-sm"
+                            : "bg-white text-espresso-800 border border-stone-200 hover:bg-cream-100"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Product Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                  {filteredProducts.map((prod) => {
+                    const avail = prod.is_available && prod.stock_qty > 0;
+                    return (
+                      <div
+                        key={prod.id}
+                        onClick={() => avail && openCustomizeModal(prod)}
+                        className={`group flex flex-col overflow-hidden rounded-2xl border bg-white transition-all ${
+                          avail
+                            ? "cursor-pointer border-stone-200 hover:border-terracotta-500 hover:shadow-md"
+                            : "cursor-not-allowed border-stone-200 opacity-70"
+                        }`}
+                      >
+                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100">
+                          <img
+                            src={prod.image_url}
+                            alt={prod.name}
+                            className={`h-full w-full object-cover transition-transform duration-300 ${avail ? "group-hover:scale-105" : "grayscale"}`}
+                          />
+                          <span className="absolute top-2.5 left-2.5 rounded-full bg-espresso-950/80 px-2.5 py-1 text-[11px] font-semibold text-white">
+                            {prod.category}
+                          </span>
+                          <span
+                            className={`absolute top-2.5 right-2.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                              avail ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-stone-900 text-white"
+                            }`}
+                          >
+                            {avail ? `Tersedia • ${prod.stock_qty}` : "Habis"}
+                          </span>
+                        </div>
+                        <div className="flex flex-1 flex-col justify-between p-4">
+                          <div>
+                            <h3 className="font-bold text-espresso-900 text-base leading-snug">{prod.name}</h3>
+                            <p className="text-xs text-stone-500 line-clamp-2 mt-1">{prod.description}</p>
+                          </div>
+                          <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
+                            <div>
+                              <span className="block text-[10px] uppercase text-stone-400 font-semibold">Mulai dari</span>
+                              <span className="text-base font-extrabold text-terracotta-700">{formatRupiah(prod.base_price)}</span>
+                            </div>
+                            <button
+                              disabled={!avail}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (avail) openCustomizeModal(prod);
+                              }}
+                              className={`rounded-xl px-3.5 py-2 text-xs font-bold ${
+                                avail ? "bg-terracotta-600 text-white hover:bg-terracotta-700" : "bg-stone-200 text-stone-500"
+                              }`}
+                            >
+                              {avail ? "+ Pilih Varian" : "Stok Habis"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </main>
+            </>
+          )}
+
+          {/* ============================================================== */}
+          {/* VIEW 2: GUEST CHECKOUT (/checkout)                             */}
+          {/* ============================================================== */}
+          {route === "checkout" && (
+            <main className="max-w-5xl mx-auto w-full px-4 py-8">
+              <button onClick={() => setRoute("storefront")} className="text-xs font-bold text-terracotta-700 hover:underline mb-2">
+                ← Kembali ke Katalog Menu
+              </button>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-espresso-900 mb-6">
+                Checkout Pesanan (Guest Checkout)
+              </h1>
+
+              {cart.length === 0 ? (
+                <div className="rounded-2xl border border-stone-200 bg-white p-10 text-center max-w-md mx-auto">
+                  <p className="text-lg font-extrabold text-espresso-900">Keranjang Belanja Kosong</p>
+                  <p className="text-xs text-stone-500 mt-1 mb-5">Yuk pilih menu dimsum kukus hangat atau mentai terlebih dahulu!</p>
+                  <button
+                    onClick={() => setRoute("storefront")}
+                    className="rounded-xl bg-terracotta-600 px-5 py-2.5 text-sm font-bold text-white"
+                  >
+                    Lihat Katalog Menu
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleCreateOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  <div className="lg:col-span-7 space-y-6">
+                    {/* Data Pemesan */}
+                    <div className="rounded-2xl border border-stone-200 bg-white p-5 space-y-4">
+                      <h2 className="text-base font-extrabold text-espresso-900">1. Informasi Pemesan (Tanpa Login)</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold mb-1">Nama Lengkap *</label>
+                          <input
+                            required
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            placeholder="Contoh: Rina Wulandari"
+                            className="w-full h-11 rounded-xl border border-stone-300 px-3.5 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold mb-1">No. WhatsApp Aktif *</label>
+                          <input
+                            required
+                            value={customerPhone}
+                            onChange={(e) => setCustomerPhone(e.target.value)}
+                            placeholder="081234567890"
+                            className="w-full h-11 rounded-xl border border-stone-300 px-3.5 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Metode Pengiriman */}
+                    <div className="rounded-2xl border border-stone-200 bg-white p-5 space-y-4">
+                      <h2 className="text-base font-extrabold text-espresso-900">2. Pilih Metode Pengiriman</h2>
+                      <div className="space-y-2.5">
+                        {Object.entries(DELIVERY_OPTIONS).map(([key, opt]) => {
+                          const selected = deliveryType === key;
+                          return (
+                            <label
+                              key={key}
+                              onClick={() => setDeliveryType(key)}
+                              className={`flex cursor-pointer items-center justify-between rounded-xl border p-3.5 ${
+                                selected ? "border-terracotta-600 bg-terracotta-50/70" : "border-stone-200"
+                              }`}
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-espresso-900">{opt.label} <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full ml-1">{opt.eta}</span></p>
+                                <p className="text-xs text-stone-500">{opt.description}</p>
+                              </div>
+                              <span className="text-sm font-extrabold text-terracotta-700">
+                                {opt.fee === 0 ? "GRATIS" : formatRupiah(opt.fee)}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+
+                      {deliveryType !== "pickup" && (
+                        <div>
+                          <label className="block text-xs font-bold mb-1">Alamat Lengkap Pengiriman *</label>
+                          <textarea
+                            required
+                            rows={2}
+                            value={deliveryAddress}
+                            onChange={(e) => setDeliveryAddress(e.target.value)}
+                            placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, dan patokan..."
+                            className="w-full rounded-xl border border-stone-300 p-3 text-sm"
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-xs font-bold mb-1">Catatan Pesanan (Opsional)</label>
+                        <input
+                          value={orderNotes}
+                          onChange={(e) => setOrderNotes(e.target.value)}
+                          placeholder="Contoh: Sumpit 3 pasang, saus mentai pisah"
+                          className="w-full h-10 rounded-xl border border-stone-300 px-3.5 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Daftar Item */}
+                    <div className="rounded-2xl border border-stone-200 bg-white p-5 space-y-3">
+                      <h2 className="text-base font-extrabold text-espresso-900">3. Daftar Menu Dipesan</h2>
+                      <div className="divide-y divide-stone-200">
+                        {cart.map((item) => (
+                          <div key={item.key} className="py-3 flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-bold text-espresso-900">{item.productName}</p>
+                              <p className="text-xs font-semibold text-terracotta-700">Varian: {item.variantName}</p>
+                              {item.itemNotes && <p className="text-xs italic text-stone-500">Catatan: "{item.itemNotes}"</p>}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button type="button" onClick={() => updateCartQty(item.key, item.quantity - 1)} className="h-7 w-7 rounded-lg border border-stone-300 font-bold">-</button>
+                              <span className="text-xs font-extrabold w-5 text-center">{item.quantity}</span>
+                              <button type="button" onClick={() => updateCartQty(item.key, item.quantity + 1)} className="h-7 w-7 rounded-lg border border-stone-300 font-bold">+</button>
+                              <span className="text-sm font-extrabold text-espresso-900 ml-2">{formatRupiah(item.unitPrice * item.quantity)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Voucher & Ringkasan */}
+                  <div className="lg:col-span-5 space-y-6">
+                    <div className="rounded-2xl border border-stone-200 bg-white p-5 space-y-3">
+                      <h2 className="text-base font-extrabold text-espresso-900">Kode Voucher Promo</h2>
+                      <div className="flex gap-2">
+                        <input
+                          value={voucherInput}
+                          onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                          placeholder="Masukkan kode..."
+                          className="flex-1 h-10 rounded-xl border border-stone-300 px-3 text-sm font-mono uppercase"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleValidateVoucher()}
+                          className="rounded-xl bg-stone-900 px-4 text-xs font-bold text-white"
+                        >
+                          Pakai
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 text-xs">
+                        {VOUCHERS.map((v) => (
+                          <button
+                            key={v.code}
+                            type="button"
+                            onClick={() => handleValidateVoucher(v.code)}
+                            className="rounded-lg border border-amber-300 bg-amber-50 px-2 py-0.5 font-mono text-[11px] font-bold text-terracotta-700"
+                          >
+                            {v.code}
+                          </button>
+                        ))}
+                      </div>
+                      {voucherAlert && (
+                        <p className={`text-xs font-semibold ${voucherAlert.type === "success" ? "text-emerald-700" : "text-red-600"}`}>
+                          {voucherAlert.text}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border-2 border-terracotta-200 bg-white p-5 space-y-4 shadow-md">
+                      <h2 className="text-base font-extrabold text-espresso-900">Ringkasan Pembayaran</h2>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between text-stone-600">
+                          <span>Subtotal Menu</span>
+                          <span className="font-bold text-espresso-900">{formatRupiah(subtotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-stone-600">
+                          <span>Ongkos Kirim</span>
+                          <span className="font-bold text-espresso-900">{deliveryFee === 0 ? "GRATIS" : formatRupiah(deliveryFee)}</span>
+                        </div>
+                        {discountAmount > 0 && (
+                          <div className="flex justify-between text-emerald-700 font-bold">
+                            <span>Diskon Voucher ({appliedVoucher?.code})</span>
+                            <span>- {formatRupiah(discountAmount)}</span>
+                          </div>
+                        )}
+                        <div className="border-t border-stone-200 pt-3 flex justify-between text-base font-extrabold">
+                          <span>Total Pembayaran</span>
+                          <span className="text-xl text-terracotta-700">{formatRupiah(totalAmount)}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full rounded-xl bg-gradient-to-r from-terracotta-600 to-amber-600 py-3.5 text-sm font-extrabold text-white shadow-lg hover:from-terracotta-700 hover:to-amber-700"
+                      >
+                        Buat Pesanan & Bayar ({formatRupiah(totalAmount)})
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              )}
+            </main>
+          )}
+
+          {/* ============================================================== */}
+          {/* VIEW 3: ORDER TRACKING (/order/[order_number])                 */}
+          {/* ============================================================== */}
+          {route === "order" && (
+            <main className="max-w-4xl mx-auto w-full px-4 py-8 space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <button onClick={() => setRoute("storefront")} className="text-xs font-bold text-terracotta-700 hover:underline">
+                    ← Kembali ke Katalog
+                  </button>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold font-mono text-espresso-900 mt-1">
+                    {currentOrder ? currentOrder.order_number : activeOrderNo}
+                  </h1>
+                </div>
+                {currentOrder && (
+                  <span className={`rounded-full px-3.5 py-1 text-xs font-extrabold ${
+                    currentOrder.payment_status === "paid" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"
+                  }`}>
+                    {currentOrder.payment_status === "paid" ? "✓ LUNAS (PAID)" : "MENUNGGU PEMBAYARAN"}
+                  </span>
+                )}
+              </div>
+
+              {!currentOrder ? (
+                <div className="rounded-2xl border border-stone-200 bg-white p-8 text-center">
+                  <p className="font-bold">Pesanan tidak ditemukan.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Stepper Status Pesanan */}
+                  <div className="rounded-2xl border border-stone-200 bg-white p-5">
+                    <h2 className="text-sm font-extrabold uppercase tracking-wider text-terracotta-700 mb-4">
+                      Status Pelacakan Pesanan Real-Time
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      {[
+                        { key: "awaiting_payment", label: "Menunggu Pembayaran", icon: "⏳" },
+                        { key: "preparing", label: "Sedang Dikukus", icon: "🔥" },
+                        { key: "delivering", label: "Dalam Pengiriman", icon: "🛵" },
+                        { key: "completed", label: "Selesai", icon: "✅" }
+                      ].map((step, idx, arr) => {
+                        const orderIdx = arr.findIndex((s) => s.key === currentOrder.order_status);
+                        const done = idx <= orderIdx;
+                        const active = idx === orderIdx;
+                        return (
+                          <div
+                            key={step.key}
+                            className={`rounded-xl border p-3.5 text-center ${
+                              active
+                                ? "border-terracotta-600 bg-terracotta-50 ring-2 ring-terracotta-500/20"
+                                : done
+                                ? "border-emerald-200 bg-emerald-50/50"
+                                : "border-stone-200 opacity-50"
+                            }`}
+                          >
+                            <div className="text-2xl mb-1">{step.icon}</div>
+                            <p className="text-[10px] font-bold uppercase text-stone-500">Tahap {idx + 1}</p>
+                            <p className="text-xs font-extrabold text-espresso-900">{step.label}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <div className="md:col-span-5">
+                      {currentOrder.payment_status === "pending" ? (
+                        <div className="rounded-2xl border-2 border-terracotta-500 bg-white p-5 text-center space-y-4 shadow-lg">
+                          <div className="rounded-xl bg-terracotta-600 text-white py-2 px-3 text-xs font-extrabold">
+                            PEMBAYARAN QRIS INSTAN (MIDTRANS SNAP READY)
+                          </div>
+                          <div>
+                            <p className="text-xs text-stone-500">Total Tagihan</p>
+                            <p className="text-2xl font-extrabold text-terracotta-700">{formatRupiah(currentOrder.total_amount)}</p>
+                          </div>
+                          <div className="mx-auto w-44 h-44 rounded-xl bg-espresso-950 text-white flex flex-col items-center justify-center p-4">
+                            <div className="grid grid-cols-5 gap-1 w-24 h-24 bg-white p-2 rounded">
+                              {Array.from({ length: 25 }).map((_, i) => (
+                                <div key={i} className={i % 2 === 0 || i % 7 === 0 ? "bg-black" : "bg-white"} />
+                              ))}
+                            </div>
+                            <span className="text-[10px] font-mono text-amber-300 mt-2">NMID: ID102600882199</span>
+                          </div>
+                          <button
+                            onClick={() => updateOrderStatus(currentOrder.order_number, "preparing", true)}
+                            className="w-full rounded-xl bg-gradient-to-r from-terracotta-600 to-amber-600 py-3 text-xs font-extrabold text-white shadow-md"
+                          >
+                            ✓ Simulasikan Bayar Lunas (QRIS)
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 space-y-2">
+                          <p className="text-base font-extrabold text-emerald-900">✓ Pembayaran Telah Diterima!</p>
+                          <p className="text-xs text-emerald-800">Pesanan Anda sedang diproses oleh dapur Dimsum Hangat Nusantara.</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-7 rounded-2xl border border-stone-200 bg-white p-5 space-y-4">
+                      <h3 className="text-base font-extrabold text-espresso-900">Rincian Pesanan & Pengiriman</h3>
+                      <div className="text-xs space-y-1 border-b border-stone-200 pb-3">
+                        <p><strong>Pemesan:</strong> {currentOrder.customer_name} ({currentOrder.customer_phone})</p>
+                        <p><strong>Pengiriman:</strong> {DELIVERY_OPTIONS[currentOrder.delivery_type]?.label}</p>
+                        {currentOrder.delivery_address && <p><strong>Alamat:</strong> {currentOrder.delivery_address}</p>}
+                      </div>
+                      <div className="divide-y divide-stone-200">
+                        {currentOrder.order_items.map((item) => (
+                          <div key={item.id} className="py-2.5 flex justify-between text-xs">
+                            <div>
+                              <p className="font-bold text-espresso-900">{item.quantity}x {item.product_name}</p>
+                              <p className="text-terracotta-700 font-semibold">Varian: {item.variant_name}</p>
+                              {item.item_notes && <p className="italic text-stone-500">Catatan: "{item.item_notes}"</p>}
+                            </div>
+                            <span className="font-extrabold">{formatRupiah(item.quantity * item.unit_price)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-t border-stone-200 pt-3 flex justify-between text-base font-extrabold">
+                        <span>Total Dibayar</span>
+                        <span className="text-terracotta-700">{formatRupiah(currentOrder.total_amount)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </main>
+          )}
+
+          {/* ============================================================== */}
+          {/* VIEW 4: ADMIN LOGIN (/admin/login)                             */}
+          {/* ============================================================== */}
+          {route === "admin-login" && (
+            <main className="max-w-md mx-auto w-full px-4 py-12">
+              <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-xl space-y-4">
+                <div className="text-center space-y-1">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-terracotta-600 text-white text-2xl">🔒</div>
+                  <h1 className="text-xl font-extrabold text-espresso-900">Login Portal Admin</h1>
+                  <p className="text-xs text-stone-500">Akun Demo: <code>admin@dimsum.id</code> / <code>dimsum123</code></p>
+                </div>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setAdminLoggedIn(true);
+                    setRoute("admin");
+                  }}
+                  className="space-y-3"
+                >
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Email Admin</label>
+                    <input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="w-full h-10 rounded-xl border border-stone-300 px-3 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Kata Sandi</label>
+                    <input type="password" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} className="w-full h-10 rounded-xl border border-stone-300 px-3 text-sm" />
+                  </div>
+                  <button type="submit" className="w-full rounded-xl bg-terracotta-600 py-3 text-sm font-extrabold text-white">
+                    Masuk ke Dashboard Admin
+                  </button>
+                </form>
+              </div>
+            </main>
+          )}
+
+          {/* ============================================================== */}
+          {/* VIEW 5: ADMIN DASHBOARD (/admin)                               */}
+          {/* ============================================================== */}
+          {route === "admin" && (
+            <main className="no-print max-w-6xl mx-auto w-full px-4 py-8 space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-4">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setAdminTab("orders")}
+                    className={`rounded-xl px-4 py-2.5 text-xs font-extrabold ${
+                      adminTab === "orders" ? "bg-terracotta-600 text-white" : "bg-white border border-stone-200"
+                    }`}
+                  >
+                    📋 Pesanan Masuk (OMS) ({orders.length})
+                  </button>
+                  <button
+                    onClick={() => setAdminTab("products")}
+                    className={`rounded-xl px-4 py-2.5 text-xs font-extrabold ${
+                      adminTab === "products" ? "bg-terracotta-600 text-white" : "bg-white border border-stone-200"
+                    }`}
+                  >
+                    🥟 Manajemen Menu & Quick Toggle Stok ({products.length})
+                  </button>
+                  <button
+                    onClick={() => setAdminTab("analytics")}
+                    className={`rounded-xl px-4 py-2.5 text-xs font-extrabold ${
+                      adminTab === "analytics" ? "bg-terracotta-600 text-white" : "bg-white border border-stone-200"
+                    }`}
+                  >
+                    📈 Ringkasan Omzet
+                  </button>
+                </div>
+              </div>
+
+              {/* TAB OMS */}
+              {adminTab === "orders" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    {orders.map((ord) => (
+                      <div key={ord.order_number} className="rounded-2xl border border-stone-200 bg-white p-5 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3">
+                          <div>
+                            <span className="font-mono text-base font-extrabold text-terracotta-700">{ord.order_number}</span>
+                            <span className="text-xs text-stone-500 ml-2">• {ord.customer_name} ({ord.customer_phone})</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${ord.payment_status === "paid" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                              {ord.payment_status === "paid" ? "Lunas" : "Belum Bayar"}
+                            </span>
+                            <span className="rounded-full bg-stone-100 px-3 py-0.5 text-xs font-extrabold text-espresso-900">
+                              Status: {ord.order_status}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                          <div className="md:col-span-7 space-y-1 text-xs">
+                            {ord.order_items.map((it) => (
+                              <div key={it.id} className="flex justify-between">
+                                <span><strong>{it.quantity}x {it.product_name}</strong> ({it.variant_name}) {it.item_notes ? `— "${it.item_notes}"` : ""}</span>
+                                <span className="font-bold">{formatRupiah(it.quantity * it.unit_price)}</span>
+                              </div>
+                            ))}
+                            <div className="pt-2 font-extrabold text-sm text-terracotta-700">
+                              Total: {formatRupiah(ord.total_amount)} ({DELIVERY_OPTIONS[ord.delivery_type]?.label})
+                            </div>
+                          </div>
+
+                          <div className="md:col-span-5 flex flex-wrap md:justify-end gap-2">
+                            {ord.order_status === "awaiting_payment" && (
+                              <button
+                                onClick={() => updateOrderStatus(ord.order_number, "preparing", true)}
+                                className="rounded-xl bg-terracotta-600 px-3.5 py-2 text-xs font-bold text-white"
+                              >
+                                🔥 Terima & Kukus
+                              </button>
+                            )}
+                            {ord.order_status === "preparing" && (
+                              <button
+                                onClick={() => updateOrderStatus(ord.order_number, "delivering")}
+                                className="rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white"
+                              >
+                                🛵 Kirim Pesanan
+                              </button>
+                            )}
+                            {ord.order_status === "delivering" && (
+                              <button
+                                onClick={() => updateOrderStatus(ord.order_number, "completed")}
+                                className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white"
+                              >
+                                ✓ Selesai
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setReceiptOrder(ord)}
+                              className="rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-bold text-espresso-900 hover:bg-stone-100"
+                            >
+                              🖨️ Cetak Struk 58mm
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB MENU & STOK */}
+              {adminTab === "products" && (
+                <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-cream-100 text-xs font-extrabold uppercase text-espresso-900 border-b border-stone-200">
+                      <tr>
+                        <th className="p-4">Menu Dimsum</th>
+                        <th className="p-4">Kategori</th>
+                        <th className="p-4">Harga Dasar</th>
+                        <th className="p-4">Stok</th>
+                        <th className="p-4">Quick Toggle Tersedia</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-200">
+                      {products.map((p) => (
+                        <tr key={p.id}>
+                          <td className="p-4 font-bold text-espresso-900">{p.name}</td>
+                          <td className="p-4 text-xs">{p.category}</td>
+                          <td className="p-4 font-extrabold text-terracotta-700">{formatRupiah(p.base_price)}</td>
+                          <td className="p-4 font-bold">{p.stock_qty}</td>
+                          <td className="p-4">
+                            <button
+                              onClick={() => toggleProductStock(p.id)}
+                              className={`rounded-full px-3.5 py-1 text-xs font-extrabold transition-colors ${
+                                p.is_available && p.stock_qty > 0
+                                  ? "bg-emerald-600 text-white"
+                                  : "bg-stone-300 text-stone-700"
+                              }`}
+                            >
+                              {p.is_available && p.stock_qty > 0 ? "ON • Tersedia" : "OFF • Habis"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* TAB OMZET */}
+              {adminTab === "analytics" && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="rounded-2xl border border-terracotta-200 bg-white p-5">
+                    <p className="text-xs font-bold uppercase text-stone-500">Total Omzet Hari Ini</p>
+                    <p className="text-3xl font-extrabold text-terracotta-700 mt-1">
+                      {formatRupiah(orders.reduce((s, o) => s + o.total_amount, 0))}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200 bg-white p-5">
+                    <p className="text-xs font-bold uppercase text-stone-500">Pesanan Selesai</p>
+                    <p className="text-3xl font-extrabold text-espresso-900 mt-1">
+                      {orders.filter((o) => o.order_status === "completed").length} Pesanan
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-amber-200 bg-white p-5">
+                    <p className="text-xs font-bold uppercase text-stone-500">Menu Terlaris</p>
+                    <p className="text-lg font-extrabold text-espresso-900 mt-1">Siomay Ayam Udang Spesial</p>
+                  </div>
+                </div>
+              )}
+            </main>
+          )}
+
+          {/* ============================================================== */}
+          {/* FLOATING CART BAR (Mobile-First)                               */}
+          {/* ============================================================== */}
+          {route === "storefront" && totalItems > 0 && (
+            <div className="no-print fixed bottom-0 left-0 right-0 z-40 p-3">
+              <div className="max-w-2xl mx-auto flex items-center justify-between rounded-2xl bg-espresso-950 p-3.5 text-white shadow-2xl border border-amber-400/30">
+                <div>
+                  <p className="text-xs text-stone-300">{totalItems} item di keranjang</p>
+                  <p className="text-lg font-extrabold text-amber-300">{formatRupiah(subtotal)}</p>
+                </div>
+                <button
+                  onClick={() => setRoute("checkout")}
+                  className="rounded-xl bg-gradient-to-r from-terracotta-600 to-amber-600 px-6 py-2.5 text-sm font-extrabold text-white shadow-md"
+                >
+                  Lanjut Checkout →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* MODAL KUSTOMISASI VARIAN & CATATAN                             */}
+          {/* ============================================================== */}
+          {modalProduct && (
+            <div className="no-print fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4">
+              <div className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl bg-white overflow-hidden shadow-2xl">
+                <div className="relative h-44 w-full">
+                  <img src={modalProduct.image_url} alt={modalProduct.name} className="h-full w-full object-cover" />
+                  <button
+                    onClick={() => setModalProduct(null)}
+                    className="absolute top-3 right-3 h-8 w-8 rounded-full bg-white/90 font-extrabold text-espresso-900"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                  <div>
+                    <h3 className="text-lg font-extrabold text-espresso-900">{modalProduct.name}</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">{modalProduct.description}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-xs font-extrabold uppercase text-espresso-900">Pilih Varian Isi</label>
+                    {modalProduct.product_variants.map((v) => {
+                      const active = selectedVariant?.id === v.id;
+                      const price = modalProduct.base_price + v.additional_price;
+                      return (
+                        <label
+                          key={v.id}
+                          onClick={() => setSelectedVariant(v)}
+                          className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 ${
+                            active ? "border-terracotta-600 bg-terracotta-50" : "border-stone-200"
+                          }`}
+                        >
+                          <span className="text-sm font-bold text-espresso-900">{v.variant_name}</span>
+                          <span className="text-sm font-extrabold text-terracotta-700">{formatRupiah(price)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold uppercase text-espresso-900 mb-1">Catatan Item (Opsional)</label>
+                    <input
+                      value={modalNotes}
+                      onChange={(e) => setModalNotes(e.target.value)}
+                      placeholder='Contoh: "Saus dipisah, chili oil ekstra"'
+                      className="w-full h-10 rounded-xl border border-stone-300 px-3 text-sm"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setModalQty((q) => Math.max(1, q - 1))} className="h-9 w-9 rounded-xl border border-stone-300 font-bold">-</button>
+                      <span className="font-extrabold text-base">{modalQty}</span>
+                      <button onClick={() => setModalQty((q) => q + 1)} className="h-9 w-9 rounded-xl border border-stone-300 font-bold">+</button>
+                    </div>
+                    <button
+                      onClick={handleAddToCart}
+                      className="rounded-xl bg-gradient-to-r from-terracotta-600 to-amber-600 px-6 py-3 text-sm font-extrabold text-white shadow-md"
+                    >
+                      + Keranjang ({formatRupiah((modalProduct.base_price + (selectedVariant?.additional_price || 0)) * modalQty)})
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL LACAK PESANAN */}
+          {trackModalOpen && (
+            <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+              <div className="w-full max-w-md rounded-2xl bg-white p-5 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-extrabold">Lacak Status Pesanan</h3>
+                  <button onClick={() => setTrackModalOpen(false)} className="font-bold">✕</button>
+                </div>
+                <input
+                  value={trackInput}
+                  onChange={(e) => setTrackInput(e.target.value.toUpperCase())}
+                  placeholder="Contoh: DMS-20261118-8821"
+                  className="w-full h-11 rounded-xl border border-stone-300 px-3 font-mono text-sm uppercase"
+                />
+                <button
+                  onClick={() => {
+                    setActiveOrderNo(trackInput.trim());
+                    setTrackModalOpen(false);
+                    setRoute("order");
+                  }}
+                  className="w-full rounded-xl bg-terracotta-600 py-2.5 text-sm font-extrabold text-white"
+                >
+                  Cek Status Pesanan
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL CETAK STRUK THERMAL 58MM */}
+          {receiptOrder && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+              <div className="w-full max-w-xs rounded-2xl bg-white p-5 space-y-4">
+                <div id="thermal-receipt-print" className="mx-auto w-[58mm] border border-dashed border-stone-400 p-3 font-mono text-[11px]">
+                  <div className="text-center border-b border-dashed border-black pb-2 mb-2">
+                    <p className="font-bold">DIMSUM HANGAT NUSANTARA</p>
+                    <p className="text-[10px]">Jl. Kuliner Nusantara No. 88</p>
+                  </div>
+                  <p>No: {receiptOrder.order_number}</p>
+                  <p>Plg: {receiptOrder.customer_name}</p>
+                  <div className="border-y border-dashed border-black py-2 my-2 space-y-1">
+                    {receiptOrder.order_items.map((it) => (
+                      <div key={it.id} className="flex justify-between">
+                        <span>{it.quantity}x {it.product_name}</span>
+                        <span>{formatRupiah(it.quantity * it.unit_price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span>TOTAL</span>
+                    <span>{formatRupiah(receiptOrder.total_amount)}</span>
+                  </div>
+                </div>
+                <div className="no-print flex justify-end gap-2">
+                  <button onClick={() => setReceiptOrder(null)} className="rounded-xl border px-3 py-1.5 text-xs font-bold">Tutup</button>
+                  <button onClick={() => window.print()} className="rounded-xl bg-terracotta-600 px-4 py-1.5 text-xs font-bold text-white">🖨️ Print 58mm</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>

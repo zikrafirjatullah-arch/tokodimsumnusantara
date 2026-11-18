@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Palet Hangat Menggugah Selera: Krem Hangat, Merah Terakota/Oranye, Kontras Espresso Gelap */
+    --background: 36 60% 98%;          /* #FCF9F4 Warm Cream */
+    --foreground: 20 32% 11%;          /* #251913 Rich Espresso Dark */
+
+    --card: 0 0% 100%;                 /* #FFFFFF Clean Surface */
+    --card-foreground: 20 32% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 32% 11%;
+
+    --primary: 13 72% 46%;             /* #CA4721 Warm Terracotta Red-Orange */
+    --primary-foreground: 36 100% 98%; /* #FFFDF9 Warm White */
+
+    --secondary: 35 45% 92%;           /* #F4ECE1 Soft Steamed Bun Cream */
+    --secondary-foreground: 20 32% 16%;
+
+    --muted: 34 33% 93%;
+    --muted-foreground: 20 15% 40%;
+
+    --accent: 28 88% 52%;              /* #F08019 Warm Chili Oil / Amber Orange */
+    --accent-foreground: 20 32% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 32 28% 86%;
+    --input: 32 28% 86%;
+    --ring: 13 72% 46%;
+
+    --radius: 0.875rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-terracotta-600 selection:text-white;
+  }
+}
+
+/* Custom utility untuk menyembunyikan scrollbar pada tab horizontal mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Print CSS khusus Thermal Printer 58mm untuk Struk Pesanan Admin */
+@media print {
+  @page {
+    size: 58mm auto;
+    margin: 0mm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #thermal-receipt-print,
+  #thermal-receipt-print * {
+    visibility: visible;
+  }
+
+  #thermal-receipt-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 58mm;
+    padding: 3mm 2mm;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: "Courier New", Courier, monospace !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
