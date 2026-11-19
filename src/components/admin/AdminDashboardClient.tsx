@@ -37,12 +37,12 @@ import {
 } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import {
+  ADMIN_SESSION_STORAGE_KEY,
   getLocalOrders,
   getLocalProducts,
   saveLocalOrder,
   saveLocalProducts,
 } from "@/lib/demo-store";
-import { ADMIN_SESSION_STORAGE_KEY } from "@/app/admin/login/page";
 import { ThermalReceipt } from "./ThermalReceipt";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

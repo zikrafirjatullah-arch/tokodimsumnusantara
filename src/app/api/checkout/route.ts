@@ -4,7 +4,7 @@ import {
   DeliveryType,
   INITIAL_VOUCHERS,
   Order,
-  OrderItem,
+  ProductCategory,
   Voucher,
 } from "@/types/database";
 import { DELIVERY_OPTIONS, generateOrderNumber } from "@/lib/utils";
@@ -13,11 +13,7 @@ interface CheckoutItemPayload {
   productId: string;
   productName: string;
   productImage: string;
-  category: OrderItem["products"] extends infer T
-    ? T extends { category: infer C }
-      ? C
-      : string
-    : string;
+  category: ProductCategory;
   variantId: string | null;
   variantName: string;
   quantity: number;
@@ -210,11 +206,7 @@ export async function POST(req: NextRequest) {
         products: {
           name: item.productName,
           image_url: item.productImage,
-          category: item.category as OrderItem["products"] extends infer P
-            ? P extends { category: infer Cat }
-              ? Cat
-              : "Dimsum Kukus"
-            : "Dimsum Kukus",
+          category: item.category,
         },
         product_variants: {
           variant_name: item.variantName,

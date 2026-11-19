@@ -13,6 +13,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { ADMIN_SESSION_STORAGE_KEY } from "@/lib/demo-store";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,8 +24,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-export const ADMIN_SESSION_STORAGE_KEY = "dimsum_admin_authenticated";
 
 export default function AdminLoginPage() {
   const router = useRouter();

@@ -6,6 +6,7 @@ import {
   Voucher,
 } from "@/types/database";
 
+export const ADMIN_SESSION_STORAGE_KEY = "dimsum_admin_authenticated";
 const ORDERS_STORAGE_KEY = "dimsum_orders_db";
 const PRODUCTS_STORAGE_KEY = "dimsum_products_db";
 const VOUCHERS_STORAGE_KEY = "dimsum_vouchers_db";
